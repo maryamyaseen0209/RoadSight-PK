@@ -6,10 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.api.v1.router import router as api_v1_router
 from backend.app.core.config import settings
 from backend.app.core.logging_config import logger
-from backend.app.db.session import init_db
+from backend.app.db.session import init_db, SessionLocal
+from backend.app.services.model_loader import load_models_on_startup
+from backend.app.services.experiment_sync import sync_experiments_to_database
 
-
-# Ensure DB tables are created upon import as well as on lifespan startup
+# Ensure DB tables are created upon import
 init_db()
 
 
@@ -19,7 +20,20 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing RoadSight-PK backend services...")
     init_db()
     settings.outputs_path
+    settings.visualizations_path
     logger.info(f"Artifacts output directory mounted at: {settings.outputs_path}")
+    logger.info(f"Visualizations directory mounted at: {settings.visualizations_path}")
+
+    # Load defect detection models once on startup
+    load_models_on_startup()
+
+    # Automatically sync experiment metrics from CSV/JSON into SQLite
+    db = SessionLocal()
+    try:
+        sync_experiments_to_database(db)
+    finally:
+        db.close()
+
     yield
     logger.info("RoadSight-PK backend services shutting down.")
 
@@ -42,8 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static file mount for detected/annotated outputs
+# Static file mount for detected/annotated outputs and experiment visualizations
 app.mount("/outputs", StaticFiles(directory=str(settings.outputs_path)), name="outputs")
+app.mount("/visualizations", StaticFiles(directory=str(settings.visualizations_path)), name="visualizations")
 
 # Include Versioned API Routes
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)

@@ -1,0 +1,18 @@
+{
+    "YOLO": {
+        "parameters": 2390464,
+        "size_mb": 5.196904182434082,
+        "gpu_latency_ms": 8.5,
+        "gpu_fps": 117.6,
+        "cpu_latency_ms": 45.0,
+        "cpu_fps": 22.2
+    },
+    "Faster_RCNN": {
+        "parameters": 43271528,
+        "size_mb": 165.43876361846924,
+        "gpu_latency_ms": 42.0,
+        "gpu_fps": 23.8,
+        "cpu_latency_ms": 280.0,
+        "cpu_fps": 3.5
+    }
+}

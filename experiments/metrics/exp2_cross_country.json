@@ -1,0 +1,24 @@
+{
+    "LOCO_China_Motorbike_heldout": {
+        "train_on": [
+            "Japan",
+            "India",
+            "USA",
+            "Czech_Republic"
+        ],
+        "test_on": "China_Motorbike",
+        "mAP50": 0.355,
+        "mAP50_95": 0.185
+    },
+    "LOCO_India_heldout": {
+        "train_on": [
+            "Japan",
+            "Czech_Republic",
+            "China_MotorBike",
+            "USA"
+        ],
+        "test_on": "India",
+        "mAP50": 0.312,
+        "mAP50_95": 0.154
+    }
+}

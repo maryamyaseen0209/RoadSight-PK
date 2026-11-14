@@ -18,6 +18,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/analyze" element={<Analyze />} />
             <Route path="/results" element={<Results />} />
+            <Route path="/results/:runId" element={<Results />} />
             <Route path="/performance" element={<ModelPerformance />} />
             <Route path="/history" element={<History />} />
             <Route path="/about" element={<About />} />

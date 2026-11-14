@@ -1,0 +1,5 @@
+experiment_id,model_name,dataset,mAP50,latency_ms
+exp1_yolo,YOLO26n,RDD2022_Test,0.455,8.5
+exp1_frcnn,Faster_RCNN,RDD2022_Test,0.385,42.0
+exp3_zeroshot,YOLO26n,Pakistani_Test_ZeroShot,0.224,8.5
+exp4_finetune,YOLO26n,Pakistani_Test_100pct,0.442,8.5

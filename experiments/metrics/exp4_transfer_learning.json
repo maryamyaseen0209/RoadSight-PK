@@ -1,0 +1,18 @@
+{
+    "10_percent_subset": {
+        "mAP50": 0.258,
+        "mAP50_95": 0.115
+    },
+    "25_percent_subset": {
+        "mAP50": 0.312,
+        "mAP50_95": 0.158
+    },
+    "50_percent_subset": {
+        "mAP50": 0.384,
+        "mAP50_95": 0.211
+    },
+    "100_percent_subset": {
+        "mAP50": 0.442,
+        "mAP50_95": 0.254
+    }
+}

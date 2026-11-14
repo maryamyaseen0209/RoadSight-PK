@@ -21,6 +21,7 @@ class DetectionRun(Base):
     total_detections = Column(Integer, default=0, nullable=False)
     inference_time_ms = Column(Float, default=0.0, nullable=False)
     model_name = Column(String(100), default="YOLO26n", nullable=False)
+    confidence_threshold = Column(Float, default=0.25, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     detections = relationship("Detection", back_populates="run", cascade="all, delete-orphan")

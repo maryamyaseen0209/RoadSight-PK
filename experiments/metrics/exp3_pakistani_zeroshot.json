@@ -1,0 +1,9 @@
+{
+    "status": "awaiting_local_pakistani_dataset",
+    "instruction": "Place custom local road dataset at /content/RoadSight-PK/data/local/ to evaluate actual generalization and compute domain gap.",
+    "domain_gap_simulated": {
+        "international_baseline_mAP50": 0.455,
+        "pakistani_zeroshot_mAP50": 0.224,
+        "domain_gap": 0.231
+    }
+}

@@ -1,34 +1,107 @@
-import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock, Cpu, Download, Eye, Layers } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useLocation, Link } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Download,
+  FileCode,
+  FileSpreadsheet,
+  Layers,
+  Loader2,
+} from 'lucide-react';
+import { fetchRunDetail } from '../services/api';
 
 const CLASS_BADGES = {
-  0: { name: 'Longitudinal Crack [D00]', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
-  1: { name: 'Transverse Crack [D10]', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-  2: { name: 'Alligator Crack [D20]', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-  3: { name: 'Pothole [D40]', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
+  0: { code: 'D00', name: 'Longitudinal Crack', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+  1: { code: 'D10', name: 'Transverse Crack', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
+  2: { code: 'D20', name: 'Alligator Crack', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
+  3: { code: 'D40', name: 'Pothole', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
 };
 
 export default function Results() {
+  const { runId } = useParams();
   const location = useLocation();
-  const result = location.state?.result;
+  const [result, setResult] = useState(location.state?.result || null);
+  const [loading, setLoading] = useState(!location.state?.result && !!runId);
+  const [error, setError] = useState(null);
 
-  if (!result) {
+  useEffect(() => {
+    if (runId && (!result || result.run_id !== runId)) {
+      setLoading(true);
+      fetchRunDetail(runId)
+        .then((data) => {
+          setResult(data);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error(err);
+          setError(err.response?.data?.detail || 'Failed to fetch detection run details.');
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [runId]);
+
+  const exportJSON = () => {
+    if (!result) return;
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `detection_${result.run_id || 'run'}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = () => {
+    if (!result || !result.detections) return;
+    const headers = ['id', 'class_id', 'class_name', 'confidence', 'x1', 'y1', 'x2', 'y2'];
+    const rows = result.detections.map((d, idx) => [
+      idx + 1,
+      d.class_id,
+      `"${d.class_name}"`,
+      d.confidence,
+      d.bbox_xmin ?? d.x1,
+      d.bbox_ymin ?? d.y1,
+      d.bbox_xmax ?? d.x2,
+      d.bbox_ymax ?? d.y2,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `detections_${result.run_id || 'run'}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
     return (
-      <div className="max-w-xl mx-auto text-center py-16 space-y-4">
+      <div className="text-center py-24 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto" />
+        <p className="text-sm text-slate-400">Loading detection inspection record...</p>
+      </div>
+    );
+  }
+
+  if (error || !result) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-20 space-y-4">
         <div className="w-16 h-16 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-white">No Detection Results Found</h2>
+        <h2 className="text-xl font-bold text-white">Detection Run Not Found</h2>
         <p className="text-sm text-slate-400">
-          Upload and run inference on a pavement image to view detections and bounding box overlays.
+          {error || 'No inspection result data exists for the specified identifier.'}
         </p>
         <Link
           to="/analyze"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Go to Analyze Page
+          Run New Analysis
         </Link>
       </div>
     );
@@ -40,20 +113,34 @@ export default function Results() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1">
-            <span>RUN ID:</span>
-            <span className="text-emerald-400">{result.run_id}</span>
+            <span>RUN IDENTIFIER:</span>
+            <span className="text-emerald-400 font-bold">{result.run_id || result.id}</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <span>Inspection Results</span>
+            <span>Inspection Summary</span>
             <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-medium border border-slate-700">
               {result.image_name}
             </span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={exportCSV}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            Export CSV
+          </button>
+          <button
+            onClick={exportJSON}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+          >
+            <FileCode className="w-4 h-4 text-blue-400" />
+            Export JSON
+          </button>
           <Link
             to="/analyze"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             New Inspection
@@ -61,7 +148,7 @@ export default function Results() {
         </div>
       </div>
 
-      {/* Metric Highlights */}
+      {/* Meta KPI Badges */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
           <span className="text-xs text-slate-400 block mb-1">Detections Found</span>
@@ -72,91 +159,102 @@ export default function Results() {
           <span className="text-2xl font-bold text-blue-400">{result.inference_time_ms} ms</span>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
-          <span className="text-xs text-slate-400 block mb-1">Active Model</span>
-          <span className="text-xl font-bold text-white truncate block">{result.model_name}</span>
+          <span className="text-xs text-slate-400 block mb-1">Model Architecture</span>
+          <span className="text-lg font-bold text-white truncate block">{result.model_name}</span>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
-          <span className="text-xs text-slate-400 block mb-1">Database Sync</span>
-          <span className="text-sm font-semibold text-teal-400 flex items-center gap-1.5 mt-1">
-            <CheckCircle2 className="w-4 h-4" />
-            Persisted in SQLite
+          <span className="text-xs text-slate-400 block mb-1">Confidence Filter</span>
+          <span className="text-lg font-bold text-amber-400 block">
+            {result.confidence_threshold ?? 0.25}
           </span>
         </div>
       </div>
 
-      {/* Main Visual & Detections Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Rendered Pavement View */}
-        <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center">
-          <div className="w-full relative rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+      {/* Side-by-side Images */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-2">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            Original Input Image
+          </span>
+          <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
             <img
-              src={result.output_image_url || result.image_url}
-              alt="Road Defect Detection View"
-              className="max-h-[500px] w-auto object-contain"
+              src={result.image_url}
+              alt="Original Road"
+              className="max-h-96 w-auto object-contain"
             />
           </div>
-          <div className="w-full flex items-center justify-between text-xs text-slate-500 mt-3 px-1">
-            <span>Pavement Image Inspection Layer</span>
-            <span className="font-mono">Output Artifact: {result.output_image_url}</span>
-          </div>
         </div>
 
-        {/* Detected Defects List */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
-              Identified Defect Boxes ({result.detections?.length || 0})
-            </h2>
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-2">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            Localized Bounding Box Overlay
+          </span>
+          <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
+            <img
+              src={result.output_image_url}
+              alt="Annotated Defects"
+              className="max-h-96 w-auto object-contain"
+            />
+          </div>
+        </div>
+      </div>
 
-            {result.detections?.length === 0 ? (
-              <div className="text-center py-12 px-4 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                <p className="text-sm font-semibold text-slate-200">No Defects Exceeding Threshold</p>
-                <p className="text-xs text-slate-500">
-                  The road surface either lacks severe defects or the confidence threshold filtered low-certainty candidates.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+      {/* Bounding Box Coordinate Table */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h2 className="text-base font-bold text-white flex items-center justify-between">
+          <span>Detailed Defect Coordinates ({result.detections?.length || 0})</span>
+          <span className="text-xs text-slate-400 font-normal">Pixel coordinates [x1, y1, x2, y2]</span>
+        </h2>
+
+        {!result.detections || result.detections.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 text-sm">
+            No defect bounding boxes recorded for this image.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-300">
+              <thead className="text-xs uppercase bg-slate-950/70 text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th className="px-4 py-3">#</th>
+                  <th className="px-4 py-3">Code</th>
+                  <th className="px-4 py-3">Damage Category</th>
+                  <th className="px-4 py-3">Confidence</th>
+                  <th className="px-4 py-3 font-mono">x1 (xmin)</th>
+                  <th className="px-4 py-3 font-mono">y1 (ymin)</th>
+                  <th className="px-4 py-3 font-mono">x2 (xmax)</th>
+                  <th className="px-4 py-3 font-mono">y2 (ymax)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                 {result.detections.map((det, idx) => {
                   const badge = CLASS_BADGES[det.class_id] || {
+                    code: `D0${det.class_id}`,
                     name: det.class_name,
-                    color: 'bg-slate-700 text-slate-300 border-slate-600',
+                    color: 'bg-slate-800 text-slate-300 border-slate-700',
                   };
                   return (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${badge.color}`}
-                        >
-                          {badge.name}
+                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded border font-semibold ${badge.color}`}>
+                          {badge.code}
                         </span>
-                        <span className="text-xs font-mono font-medium text-emerald-400">
-                          {(det.confidence * 100).toFixed(1)}% Conf
-                        </span>
-                      </div>
-                      <div className="text-[11px] font-mono text-slate-400 flex justify-between pt-1">
-                        <span>
-                          [{det.bbox_xmin.toFixed(0)}, {det.bbox_ymin.toFixed(0)}]
-                        </span>
-                        <span>
-                          [{det.bbox_xmax.toFixed(0)}, {det.bbox_ymax.toFixed(0)}]
-                        </span>
-                      </div>
-                    </div>
+                      </td>
+                      <td className="px-4 py-3 font-sans font-medium text-white">{det.class_name}</td>
+                      <td className="px-4 py-3 text-emerald-400 font-bold">
+                        {(det.confidence * 100).toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">{Math.round(det.bbox_xmin ?? det.x1)}</td>
+                      <td className="px-4 py-3 text-slate-400">{Math.round(det.bbox_ymin ?? det.y1)}</td>
+                      <td className="px-4 py-3 text-slate-400">{Math.round(det.bbox_xmax ?? det.x2)}</td>
+                      <td className="px-4 py-3 text-slate-400">{Math.round(det.bbox_ymax ?? det.y2)}</td>
+                    </tr>
                   );
                 })}
-              </div>
-            )}
+              </tbody>
+            </table>
           </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-500">
-            Coordinates normalized to source input dimensions.
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

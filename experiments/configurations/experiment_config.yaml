@@ -1,0 +1,3 @@
+device: cuda:0
+model_name: yolo26n.pt
+ultralytics_version: 8.4.212

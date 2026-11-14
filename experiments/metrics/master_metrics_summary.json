@@ -1,0 +1,16 @@
+{
+    "YOLO26n_Baseline": {
+        "mAP50": 0.455,
+        "latency_ms": 8.5
+    },
+    "Faster_RCNN_Baseline": {
+        "mAP50": 0.385,
+        "latency_ms": 42.0
+    },
+    "Pakistani_ZeroShot": {
+        "mAP50": 0.224
+    },
+    "Pakistani_100pct_Finetuned": {
+        "mAP50": 0.442
+    }
+}

@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: roadsight_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:///./roadsight.db
+    volumes:
+      - ./artifacts/outputs:/app/artifacts/outputs
+      - ./artifacts/checkpoints:/app/artifacts/checkpoints
+      - ./experiments:/app/experiments
+      - ./roadsight.db:/app/roadsight.db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: roadsight_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

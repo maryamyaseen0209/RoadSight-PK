@@ -36,9 +36,12 @@ data/external/
 data/local/raw/
 artifacts/checkpoints/*.pt
 artifacts/checkpoints/*.pth
+artifacts/checkpoints/*.onnx
 artifacts/outputs/*
 !artifacts/outputs/.gitkeep
 !artifacts/checkpoints/.gitkeep
+*.zip
+roadsight_colab_artifacts/
 
 # IDEs & System files
 .vscode/

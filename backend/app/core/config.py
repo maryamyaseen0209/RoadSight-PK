@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     OUTPUTS_DIR: str = "artifacts/outputs"
     CHECKPOINTS_DIR: str = "artifacts/checkpoints"
     METRICS_DIR: str = "experiments/metrics"
+    VISUALIZATIONS_DIR: str = "experiments/visualizations"
+    MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
     # Model settings
     DEFAULT_MODEL_TYPE: str = "yolo"
@@ -63,7 +65,15 @@ class Settings(BaseSettings):
 
     @property
     def metrics_path(self) -> Path:
-        return self.BASE_DIR / self.METRICS_DIR
+        p = self.BASE_DIR / self.METRICS_DIR
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def visualizations_path(self) -> Path:
+        p = self.BASE_DIR / self.VISUALIZATIONS_DIR
+        p.mkdir(parents=True, exist_ok=True)
+        return p
 
 
 settings = Settings()
