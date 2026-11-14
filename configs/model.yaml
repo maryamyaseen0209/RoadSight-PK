@@ -1,0 +1,41 @@
+# RoadSight-PK Model Configuration
+# Architecture and inference hyperparameters
+
+models:
+  yolo:
+    primary_architecture: yolo26n.pt
+    fallback_architecture: yolo11n.pt
+    legacy_architecture: yolov8n.pt
+    imgsz: 640
+    batch_size: 16
+    epochs: 50
+    patience: 10
+    optimizer: AdamW
+    lr0: 0.001
+    lrf: 0.01
+    weight_decay: 0.0005
+    device: auto
+    onnx_export: true
+
+  faster_rcnn:
+    backbone: resnet50_fpn_v2
+    num_classes: 5  # 4 defect classes + 1 background
+    pretrained_backbone: true
+    trainable_backbone_layers: 3
+    batch_size: 4
+    epochs: 30
+    lr: 0.0005
+    momentum: 0.9
+    weight_decay: 0.0005
+    lr_step_size: 10
+    lr_gamma: 0.1
+
+inference:
+  confidence_threshold: 0.25
+  iou_threshold: 0.45
+  max_detections: 100
+  class_colors:
+    0: [59, 130, 246]   # Longitudinal: Blue
+    1: [16, 185, 129]   # Transverse: Emerald
+    2: [245, 158, 11]   # Alligator: Amber
+    3: [239, 68, 68]    # Pothole: Red

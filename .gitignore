@@ -1,0 +1,48 @@
+# RoadSight-PK .gitignore
+
+# Python & Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+build/
+.eslintcache
+*.local
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Databases & local stores
+*.db
+*.sqlite
+*.sqlite3
+
+# RoadSight-PK Data & Artifacts (Large Files)
+data/external/
+data/local/raw/
+artifacts/checkpoints/*.pt
+artifacts/checkpoints/*.pth
+artifacts/outputs/*
+!artifacts/outputs/.gitkeep
+!artifacts/checkpoints/.gitkeep
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

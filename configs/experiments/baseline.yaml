@@ -1,0 +1,35 @@
+# Experiment 1: International Baseline Training
+# Train on international RDD2022 dataset to establish baseline defect detection capability
+
+experiment_name: exp1_international_baseline
+description: Baseline model trained on multi-country RDD2022 road damage dataset
+random_seed: 42
+
+dataset:
+  source: rdd2022
+  train_split: data/processed/rdd2022_train.txt
+  val_split: data/processed/rdd2022_val.txt
+  test_split: data/processed/rdd2022_test.txt
+  nc: 4
+  names:
+    0: Longitudinal Crack [D00]
+    1: Transverse Crack [D10]
+    2: Alligator Crack [D20]
+    3: Pothole [D40]
+
+training:
+  epochs: 50
+  batch_size: 16
+  imgsz: 640
+  patience: 10
+  save_period: 5
+  output_dir: artifacts/checkpoints/exp1_baseline
+
+evaluation:
+  metrics:
+    - precision
+    - recall
+    - f1_score
+    - map50
+    - map50_95
+    - per_class_ap

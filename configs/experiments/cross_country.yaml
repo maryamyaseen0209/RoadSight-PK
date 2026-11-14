@@ -1,0 +1,27 @@
+# Experiment 2: Cross-Country Generalization (Leave-One-Country-Out)
+# Evaluates domain shift between different countries in RDD2022
+
+experiment_name: exp2_cross_country_generalization
+description: Leave-One-Country-Out cross-validation across Japan, India, Czech, Norway, and USA
+random_seed: 42
+
+benchmark_countries:
+  - Japan
+  - India
+  - Czech
+  - Norway
+  - United_States
+
+classes:
+  0: Longitudinal Crack [D00]
+  1: Transverse Crack [D10]
+  2: Alligator Crack [D20]
+  3: Pothole [D40]
+
+metrics:
+  in_domain: map50
+  cross_domain: map50
+  domain_gap_formula: "(in_domain - cross_domain) / in_domain * 100"
+
+output_dir: experiments/metrics/cross_country
+visualization_dir: experiments/visualizations

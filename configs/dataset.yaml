@@ -1,0 +1,60 @@
+# RoadSight-PK Dataset Configuration
+# Single source of truth for RDD2022 4-class mapping and paths
+
+path: ./data/processed
+train: images/train
+val: images/val
+test: images/test
+
+nc: 4
+names:
+  0: Longitudinal Crack [D00]
+  1: Transverse Crack [D10]
+  2: Alligator Crack [D20]
+  3: Pothole [D40]
+
+classes:
+  D00:
+    id: 0
+    name: Longitudinal Crack [D00]
+    description: Cracks parallel to the road centerline
+  D10:
+    id: 1
+    name: Transverse Crack [D10]
+    description: Cracks perpendicular to the road centerline
+  D20:
+    id: 2
+    name: Alligator Crack [D20]
+    description: Interconnected series of cracks resembling reptile skin
+  D40:
+    id: 3
+    name: Pothole [D40]
+    description: Bowl-shaped depression caused by pavement structural loss
+
+rdd2022:
+  countries:
+    - Japan
+    - India
+    - Czech
+    - Norway
+    - United_States
+    - China_MotorBike
+    - China_Drone
+  source_url: https://doi.org/10.6084/m9.figshare.21431547.v1
+
+pakistani_dataset:
+  raw_dir: ./data/local/raw
+  metadata_csv: ./data/local/raw/metadata.csv
+  annotation_guide_url: https://www.cvat.ai/
+  required_fields:
+    - image_id
+    - file_name
+    - collection_session
+    - road_type
+    - lighting_condition
+    - weather_condition
+    - capture_device
+    - location_region
+    - image_width
+    - image_height
+    - annotation_status
