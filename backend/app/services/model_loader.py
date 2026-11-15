@@ -32,8 +32,10 @@ CLASS_COLOR_RGB = {
 class ModelRegistry:
     """Manages loaded models and startup lifecycle."""
     yolo_model: Any = None
+    yolo_international_model: Any = None
+    yolo_pakistani_model: Any = None
     yolo_weights_path: Optional[str] = None
-    yolo_model_name: str = "YOLO26n"
+    yolo_model_name: str = "YOLO26n (International Baseline)"
 
     faster_rcnn_model: Any = None
     faster_rcnn_weights_path: Optional[str] = None
@@ -44,51 +46,70 @@ class ModelRegistry:
 registry = ModelRegistry()
 
 
-def find_best_yolo_checkpoint() -> Tuple[Path, str]:
-    """Finds best available YOLO checkpoint following priority rules."""
-    checkpoints_dir = Path(settings.BASE_DIR) / settings.CHECKPOINTS_DIR
-
-    candidate_files = [
-        ("yolo_pakistani_finetuned_best.pt", "YOLO26n (Pakistani Fine-Tuned)"),
-        ("yolo_international_best.pt", "YOLO26n (International Baseline)"),
-        ("best_yolo.pt", "YOLO26n (Checkpointed)"),
-        ("yolo26n.pt", "YOLO26n (Pretrained)"),
-        ("yolo11n.pt", "YOLO11n (Pretrained)"),
-    ]
-
-    for filename, display_name in candidate_files:
-        candidate_path = checkpoints_dir / filename
-        if candidate_path.exists():
-            return candidate_path, display_name
-
-    # If not in checkpoints_dir, check default fallback
-    return Path("yolo11n.pt"), "YOLO11n (Fallback)"
-
-
 def load_models_on_startup():
     """Loads active model checkpoints once during FastAPI lifespan startup."""
     logger.info("Initializing defect detection models for inference...")
-
-    # Load YOLO
-    yolo_path, yolo_name = find_best_yolo_checkpoint()
-    registry.yolo_model_name = yolo_name
-    registry.yolo_weights_path = str(yolo_path)
+    checkpoints_dir = Path(settings.BASE_DIR) / settings.CHECKPOINTS_DIR
 
     try:
         from ultralytics import YOLO  # type: ignore
-        logger.info(f"Loading YOLO checkpoint: {yolo_path} ({yolo_name})")
-        registry.yolo_model = YOLO(str(yolo_path))
-        registry.is_ready = True
-        logger.info(f"YOLO detector successfully initialized from {yolo_path}")
+
+        # 1. Load International Baseline YOLO (robust multi-country weights, mAP50=0.5302)
+        intl_path = checkpoints_dir / "yolo_international_best.pt"
+        if intl_path.exists():
+            try:
+                registry.yolo_international_model = YOLO(str(intl_path))
+                logger.info(f"Loaded International Baseline YOLO: {intl_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load international YOLO: {e}")
+
+        # 2. Load Pakistani Fine-Tuned YOLO
+        pk_path = checkpoints_dir / "yolo_pakistani_finetuned_best.pt"
+        if pk_path.exists():
+            try:
+                registry.yolo_pakistani_model = YOLO(str(pk_path))
+                logger.info(f"Loaded Pakistani Fine-Tuned YOLO: {pk_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load Pakistani YOLO: {e}")
+
+        # Set default YOLO detector: prefer international baseline for broad generalization
+        if registry.yolo_international_model is not None:
+            registry.yolo_model = registry.yolo_international_model
+            registry.yolo_model_name = "YOLO26n (International Baseline)"
+            registry.yolo_weights_path = str(intl_path)
+            registry.is_ready = True
+        elif registry.yolo_pakistani_model is not None:
+            registry.yolo_model = registry.yolo_pakistani_model
+            registry.yolo_model_name = "YOLO26n (Pakistani Fine-Tuned)"
+            registry.yolo_weights_path = str(pk_path)
+            registry.is_ready = True
+        else:
+            # Fallback to pretrained
+            fallback_path = Path("yolo11n.pt")
+            registry.yolo_model = YOLO(str(fallback_path))
+            registry.yolo_model_name = "YOLO11n (Pretrained)"
+            registry.yolo_weights_path = str(fallback_path)
+            registry.is_ready = True
+
     except Exception as e:
-        logger.warning(f"Could not load Ultralytics YOLO model ({e}). Fallback detector will be used.")
+        logger.warning(f"Could not load Ultralytics YOLO models ({e}).")
         registry.yolo_model = None
 
-    # Check Faster R-CNN
-    frcnn_path = Path(settings.BASE_DIR) / settings.CHECKPOINTS_DIR / "faster_rcnn_international_best.pth"
+    # 3. Load Faster R-CNN ResNet-50 FPN V2
+    frcnn_path = checkpoints_dir / "faster_rcnn_international_best.pth"
     if frcnn_path.exists():
-        registry.faster_rcnn_weights_path = str(frcnn_path)
-        logger.info(f"Found Faster R-CNN checkpoint: {frcnn_path}")
+        try:
+            import torch
+            from ml.models.faster_rcnn_detector import build_faster_rcnn_model
+            frcnn = build_faster_rcnn_model(num_classes=5, pretrained=False)
+            state = torch.load(str(frcnn_path), map_location="cpu", weights_only=False)
+            frcnn.load_state_dict(state)
+            frcnn.eval()
+            registry.faster_rcnn_model = frcnn
+            registry.faster_rcnn_weights_path = str(frcnn_path)
+            logger.info(f"Faster R-CNN detector initialized successfully from {frcnn_path}")
+        except Exception as e:
+            logger.warning(f"Failed to load Faster R-CNN checkpoint ({e})")
 
     return registry
 
@@ -153,45 +174,96 @@ def run_detection_pipeline(
     img.save(orig_path, format="JPEG", quality=95)
 
     detections: List[Dict[str, Any]] = []
+    choice_upper = (model_choice or "YOLO").upper()
 
-    # Run inference with YOLO if requested and loaded
-    if model_choice.upper().startswith("YOLO") and registry.yolo_model is not None:
+    # 1. Faster R-CNN Branch
+    if "FASTER" in choice_upper and registry.faster_rcnn_model is not None:
         try:
-            results = registry.yolo_model.predict(
-                source=img,
-                conf=confidence_threshold,
-                verbose=False,
-            )
-            for r in results:
-                boxes = r.boxes
-                for i in range(len(boxes)):
-                    box = boxes[i]
-                    coords = box.xyxy[0].tolist()
-                    cid = int(box.cls[0].item())
-                    # Limit to official 4 classes
-                    if cid in OFFICIAL_CLASS_MAPPING:
-                        conf = float(box.conf[0].item())
-                        cname = OFFICIAL_CLASS_MAPPING[cid]
-                        xmin = max(0.0, min(float(w), coords[0]))
-                        ymin = max(0.0, min(float(h), coords[1]))
-                        xmax = max(0.0, min(float(w), coords[2]))
-                        ymax = max(0.0, min(float(h), coords[3]))
+            import torch
+            from torchvision.transforms import functional as TF
 
-                        detections.append({
-                            "class_id": cid,
-                            "class_name": cname,
-                            "confidence": round(conf, 4),
-                            "bbox_xmin": round(xmin, 2),
-                            "bbox_ymin": round(ymin, 2),
-                            "bbox_xmax": round(xmax, 2),
-                            "bbox_ymax": round(ymax, 2),
-                            "x1": round(xmin, 2),
-                            "y1": round(ymin, 2),
-                            "x2": round(xmax, 2),
-                            "y2": round(ymax, 2),
-                        })
+            tensor_img = TF.to_tensor(img)
+            with torch.no_grad():
+                preds = registry.faster_rcnn_model([tensor_img])[0]
+
+            boxes = preds["boxes"]
+            scores = preds["scores"]
+            labels = preds["labels"]
+
+            for box, score, lbl in zip(boxes, scores, labels):
+                conf_val = float(score.item())
+                label_val = int(lbl.item())
+                # Faster R-CNN mapping: class 0 is Background, 1: D00, 2: D10, 3: D20, 4: D40
+                mapped_cid = label_val - 1
+                if conf_val >= confidence_threshold and mapped_cid in OFFICIAL_CLASS_MAPPING:
+                    coords = box.tolist()
+                    xmin = max(0.0, min(float(w), coords[0]))
+                    ymin = max(0.0, min(float(h), coords[1]))
+                    xmax = max(0.0, min(float(w), coords[2]))
+                    ymax = max(0.0, min(float(h), coords[3]))
+                    detections.append({
+                        "class_id": mapped_cid,
+                        "class_name": OFFICIAL_CLASS_MAPPING[mapped_cid],
+                        "confidence": round(conf_val, 4),
+                        "bbox_xmin": round(xmin, 2),
+                        "bbox_ymin": round(ymin, 2),
+                        "bbox_xmax": round(xmax, 2),
+                        "bbox_ymax": round(ymax, 2),
+                        "x1": round(xmin, 2),
+                        "y1": round(ymin, 2),
+                        "x2": round(xmax, 2),
+                        "y2": round(ymax, 2),
+                    })
         except Exception as e:
-            logger.error(f"Inference execution failed: {e}")
+            logger.error(f"Faster R-CNN inference failed: {e}")
+
+    # 2. YOLO Branch
+    else:
+        # Select active YOLO model
+        active_yolo = None
+        if "PAKISTAN" in choice_upper and registry.yolo_pakistani_model is not None:
+            active_yolo = registry.yolo_pakistani_model
+        elif registry.yolo_international_model is not None:
+            active_yolo = registry.yolo_international_model
+        else:
+            active_yolo = registry.yolo_model
+
+        if active_yolo is not None:
+            try:
+                results = active_yolo.predict(
+                    source=img,
+                    conf=confidence_threshold,
+                    verbose=False,
+                )
+                for r in results:
+                    boxes = r.boxes
+                    for i in range(len(boxes)):
+                        box = boxes[i]
+                        coords = box.xyxy[0].tolist()
+                        cid = int(box.cls[0].item())
+                        if cid in OFFICIAL_CLASS_MAPPING:
+                            conf = float(box.conf[0].item())
+                            cname = OFFICIAL_CLASS_MAPPING[cid]
+                            xmin = max(0.0, min(float(w), coords[0]))
+                            ymin = max(0.0, min(float(h), coords[1]))
+                            xmax = max(0.0, min(float(w), coords[2]))
+                            ymax = max(0.0, min(float(h), coords[3]))
+
+                            detections.append({
+                                "class_id": cid,
+                                "class_name": cname,
+                                "confidence": round(conf, 4),
+                                "bbox_xmin": round(xmin, 2),
+                                "bbox_ymin": round(ymin, 2),
+                                "bbox_xmax": round(xmax, 2),
+                                "bbox_ymax": round(ymax, 2),
+                                "x1": round(xmin, 2),
+                                "y1": round(ymin, 2),
+                                "x2": round(xmax, 2),
+                                "y2": round(ymax, 2),
+                            })
+            except Exception as e:
+                logger.error(f"Inference execution failed: {e}")
 
     # Draw color-coded overlay
     annotated_img = draw_detection_overlay(img, detections)

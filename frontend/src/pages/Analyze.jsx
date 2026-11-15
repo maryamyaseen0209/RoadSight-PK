@@ -24,7 +24,7 @@ const CLASS_BADGES = {
 export default function Analyze() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [confidence, setConfidence] = useState(0.25);
+  const [confidence, setConfidence] = useState(0.15);
   const [selectedModel, setSelectedModel] = useState('YOLO');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -184,8 +184,9 @@ export default function Analyze() {
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:border-emerald-500 focus:outline-none"
               >
-                <option value="YOLO">YOLO26n / YOLO11n (High Speed • Recommended)</option>
-                <option value="Faster R-CNN">Faster R-CNN ResNet-50 FPN V2 (Two-Stage)</option>
+                <option value="YOLO">YOLO26n (International Baseline • Recommended)</option>
+                <option value="YOLO (Pakistani)">YOLO26n (Pakistani Fine-Tuned)</option>
+                <option value="Faster R-CNN">Faster R-CNN ResNet-50 FPN V2 (High Precision)</option>
               </select>
             </div>
 
@@ -197,14 +198,14 @@ export default function Analyze() {
               </div>
               <input
                 type="range"
-                min="0.10"
+                min="0.05"
                 max="0.90"
                 step="0.05"
                 value={confidence}
                 onChange={(e) => setConfidence(parseFloat(e.target.value))}
                 className="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer"
               />
-              <p className="text-[11px] text-slate-500">Filter out low-certainty bounding boxes</p>
+              <p className="text-[11px] text-slate-500">Tip: For subtle road cracks, use 0.10 – 0.20</p>
             </div>
           </div>
 
