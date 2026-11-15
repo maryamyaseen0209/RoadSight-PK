@@ -299,6 +299,21 @@ def run_detection_pipeline(
             except Exception as e:
                 logger.error(f"Inference execution failed: {e}")
 
+    # 3. OpenCV fallback: Supplement missed water-filled potholes (D40) or close-up structural cracks
+    try:
+        import cv2
+        import numpy as np
+        from backend.opencv_fallback import supplement_missed_defects
+
+        image_bgr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        detections = supplement_missed_defects(
+            image_bgr,
+            detections,
+            conf_threshold=min(float(confidence_threshold), 0.15),
+        )
+    except Exception as e:
+        logger.warning(f"OpenCV fallback processing notice: {e}")
+
     # Draw color-coded overlay
     annotated_img = draw_detection_overlay(img, detections)
     annotated_path = outputs_dir / f"{run_id}.jpg"
