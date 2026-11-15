@@ -245,6 +245,11 @@ export default function Analyze() {
                 <option value="YOLO (Pakistani)">YOLO26n (Pakistani Fine-Tuned)</option>
                 <option value="Faster R-CNN">Faster R-CNN ResNet-50 FPN V2 (High Precision)</option>
               </select>
+              <p className="text-[11px] text-slate-500">
+                {selectedModel === 'Faster R-CNN'
+                  ? '⚡ Faster R-CNN uses Region Proposal Networks to capture continuous damage boundaries without fracturing.'
+                  : 'Fast single-stage detector. For complex multi-defect scenes, try Faster R-CNN.'}
+              </p>
             </div>
 
             {/* Confidence Threshold */}
