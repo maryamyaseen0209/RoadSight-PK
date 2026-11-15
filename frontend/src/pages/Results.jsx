@@ -20,6 +20,64 @@ const CLASS_BADGES = {
   3: { code: 'D40', name: 'Pothole', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
 };
 
+const getUnifiedLabel = (defect, allDetections = []) => {
+  if (
+    defect.confidence < 0.40 &&
+    (defect.class_name === 'Alligator Crack' || defect.class_name?.includes('Alligator') || defect.class_id === 2)
+  ) {
+    return 'Severe Surface Deterioration';
+  }
+
+  // Override whenever multiple defect types overlap within 0.40 IOU
+  if (allDetections && allDetections.length > 1) {
+    const boxA = [
+      defect.bbox_xmin ?? defect.x1 ?? 0,
+      defect.bbox_ymin ?? defect.y1 ?? 0,
+      defect.bbox_xmax ?? defect.x2 ?? 0,
+      defect.bbox_ymax ?? defect.y2 ?? 0,
+    ];
+    for (const other of allDetections) {
+      if (other !== defect && (other.class_id !== defect.class_id || other.class_name !== defect.class_name)) {
+        const boxB = [
+          other.bbox_xmin ?? other.x1 ?? 0,
+          other.bbox_ymin ?? other.y1 ?? 0,
+          other.bbox_xmax ?? other.x2 ?? 0,
+          other.bbox_ymax ?? other.y2 ?? 0,
+        ];
+        const xA = Math.max(boxA[0], boxB[0]);
+        const yA = Math.max(boxA[1], boxB[1]);
+        const xB = Math.min(boxA[2], boxB[2]);
+        const yB = Math.min(boxA[3], boxB[3]);
+        const inter = Math.max(0, xB - xA) * Math.max(0, yB - yA);
+        const areaA = Math.max(1, (boxA[2] - boxA[0]) * (boxA[3] - boxA[1]));
+        const areaB = Math.max(1, (boxB[2] - boxB[0]) * (boxB[3] - boxB[1]));
+        const iou = inter / Math.max(1, areaA + areaB - inter);
+        if (iou >= 0.35) {
+          return 'Severe Structural Damage';
+        }
+      }
+    }
+  }
+
+  return defect.class_name;
+};
+
+const getBadgeProps = (defect, allDetections) => {
+  const label = getUnifiedLabel(defect, allDetections);
+  if (label === 'Severe Surface Deterioration') {
+    return { code: 'D20+', name: label, color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' };
+  }
+  if (label === 'Severe Structural Damage') {
+    return { code: 'FAIL', name: label, color: 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
+  }
+  const badge = CLASS_BADGES[defect.class_id] || {
+    code: `D0${defect.class_id}`,
+    name: label,
+    color: 'bg-slate-800 text-slate-300 border-slate-700',
+  };
+  return { ...badge, name: label };
+};
+
 export default function Results() {
   const { runId } = useParams();
   const location = useLocation();
@@ -227,11 +285,7 @@ export default function Results() {
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                 {result.detections.map((det, idx) => {
-                  const badge = CLASS_BADGES[det.class_id] || {
-                    code: `D0${det.class_id}`,
-                    name: det.class_name,
-                    color: 'bg-slate-800 text-slate-300 border-slate-700',
-                  };
+                  const badge = getBadgeProps(det, result.detections);
                   return (
                     <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
@@ -240,7 +294,7 @@ export default function Results() {
                           {badge.code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-sans font-medium text-white">{det.class_name}</td>
+                      <td className="px-4 py-3 font-sans font-medium text-white">{badge.name}</td>
                       <td className="px-4 py-3 text-emerald-400 font-bold">
                         {(det.confidence * 100).toFixed(1)}%
                       </td>

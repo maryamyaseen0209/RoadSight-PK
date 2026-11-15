@@ -125,6 +125,76 @@ def load_models_on_startup():
     return registry
 
 
+def merge_adjacent_defect_boxes(
+    detections: List[Dict[str, Any]],
+    iou_thresh: float = 0.30,
+) -> List[Dict[str, Any]]:
+    """
+    Class-Agnostic / Same Priority Tier NMS Merge:
+    Merges overlapping or adjacent defect bounding boxes into a unified damage region.
+    """
+    if len(detections) <= 1:
+        return detections
+
+    def calc_iou(b1, b2):
+        xA = max(b1[0], b2[0])
+        yA = max(b1[1], b2[1])
+        xB = min(b1[2], b2[2])
+        yB = min(b1[3], b2[3])
+        inter = max(0.0, xB - xA) * max(0.0, yB - yA)
+        areaA = max(1.0, (b1[2] - b1[0]) * (b1[3] - b1[1]))
+        areaB = max(1.0, (b2[2] - b2[0]) * (b2[3] - b2[1]))
+        return inter / (areaA + areaB - inter)
+
+    sorted_dets = sorted(detections, key=lambda d: d.get("confidence", 0), reverse=True)
+    merged: List[Dict[str, Any]] = []
+
+    while sorted_dets:
+        curr = dict(sorted_dets.pop(0))
+        curr_box = [
+            float(curr.get("bbox_xmin", 0)),
+            float(curr.get("bbox_ymin", 0)),
+            float(curr.get("bbox_xmax", 0)),
+            float(curr.get("bbox_ymax", 0)),
+        ]
+
+        remaining = []
+        for other in sorted_dets:
+            other_box = [
+                float(other.get("bbox_xmin", 0)),
+                float(other.get("bbox_ymin", 0)),
+                float(other.get("bbox_xmax", 0)),
+                float(other.get("bbox_ymax", 0)),
+            ]
+            iou = calc_iou(curr_box, other_box)
+            if iou >= iou_thresh:
+                # Merge into cohesive unified damage region
+                curr_box[0] = min(curr_box[0], other_box[0])
+                curr_box[1] = min(curr_box[1], other_box[1])
+                curr_box[2] = max(curr_box[2], other_box[2])
+                curr_box[3] = max(curr_box[3], other_box[3])
+                curr["confidence"] = max(curr["confidence"], other["confidence"])
+                if other.get("class_id", 0) > curr.get("class_id", 0):
+                    curr["class_id"] = other["class_id"]
+                    curr["class_name"] = other["class_name"]
+            else:
+                remaining.append(other)
+
+        curr["bbox_xmin"] = round(curr_box[0], 2)
+        curr["bbox_ymin"] = round(curr_box[1], 2)
+        curr["bbox_xmax"] = round(curr_box[2], 2)
+        curr["bbox_ymax"] = round(curr_box[3], 2)
+        curr["x1"] = curr["bbox_xmin"]
+        curr["y1"] = curr["bbox_ymin"]
+        curr["x2"] = curr["bbox_xmax"]
+        curr["y2"] = curr["bbox_ymax"]
+
+        merged.append(curr)
+        sorted_dets = remaining
+
+    return merged
+
+
 def draw_detection_overlay(
     image: Image.Image,
     detections: List[Dict[str, Any]],
@@ -244,13 +314,13 @@ def run_detection_pipeline(
 
         if active_yolo is not None:
             try:
-                # 1. Standard 640 pass
+                # 1. Standard 640 pass with Class-Agnostic NMS (IoU 0.30)
                 results = active_yolo.predict(
                     source=img,
                     conf=effective_conf,
-                    iou=0.45,
+                    iou=0.30,  # Lower IOU threshold merges overlapping adjacent boxes
                     imgsz=640,
-                    agnostic_nms=True,
+                    agnostic_nms=True,  # Merges disparate class boxes into a unified damage region
                     verbose=False,
                 )
 
@@ -262,10 +332,10 @@ def run_detection_pipeline(
                     results = active_yolo.predict(
                         source=img,
                         conf=fallback_conf,
-                        iou=0.45,
+                        iou=0.30,  # Lower IOU threshold merges overlapping adjacent boxes
                         imgsz=640,
                         augment=True,  # Enables Test-Time Augmentation across scales/flips
-                        agnostic_nms=True,
+                        agnostic_nms=True,  # Merges disparate class boxes into a unified damage region
                         verbose=False,
                     )
 
@@ -313,6 +383,9 @@ def run_detection_pipeline(
         )
     except Exception as e:
         logger.warning(f"OpenCV fallback processing notice: {e}")
+
+    # 4. Post-Processing NMS Merge: Merge adjacent / overlapping defect boxes (IoU >= 0.30)
+    detections = merge_adjacent_defect_boxes(detections, iou_thresh=0.30)
 
     # Draw color-coded overlay
     annotated_img = draw_detection_overlay(img, detections)
