@@ -13,7 +13,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
-import { fetchHistory, deleteRun, fetchRunDetail } from '../services/api';
+import { fetchHistory, deleteRun, fetchRunDetail, resolveImageUrl } from '../services/api';
 
 export default function History() {
   const [runs, setRuns] = useState([]);
@@ -139,11 +139,16 @@ export default function History() {
                     <td className="px-5 py-3">
                       <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
                         <img
-                          src={run.output_image_url || run.image_url}
+                          src={resolveImageUrl(run)}
                           alt={run.image_name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.style.display = 'none';
+                            if (run.image_url && !e.target.dataset.fallbackTried) {
+                              e.target.dataset.fallbackTried = 'true';
+                              e.target.src = resolveImageUrl(run.image_url);
+                            } else {
+                              e.target.style.display = 'none';
+                            }
                           }}
                         />
                       </div>

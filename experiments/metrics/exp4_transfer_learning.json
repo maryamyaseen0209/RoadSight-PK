@@ -1,18 +1,11 @@
 {
-    "10_percent_subset": {
-        "mAP50": 0.258,
-        "mAP50_95": 0.115
-    },
-    "25_percent_subset": {
-        "mAP50": 0.312,
-        "mAP50_95": 0.158
-    },
-    "50_percent_subset": {
-        "mAP50": 0.384,
-        "mAP50_95": 0.211
-    },
-    "100_percent_subset": {
-        "mAP50": 0.442,
-        "mAP50_95": 0.254
-    }
+    "experiment_id": "exp4_transfer_learning",
+    "model_name": "YOLO26n_Pakistani_FineTuned",
+    "zero_shot_mAP50": 0.8505,
+    "finetuned_mAP50": 0.7983,
+    "mAP50_gain": -0.0522,
+    "mAP50_95": 0.5139,
+    "precision": 0.8705,
+    "recall": 0.7206,
+    "checkpoint_path": "artifacts/checkpoints/yolo_pakistani_finetuned_best.pt"
 }

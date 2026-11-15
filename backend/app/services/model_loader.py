@@ -91,6 +91,17 @@ def load_models_on_startup():
             registry.yolo_weights_path = str(fallback_path)
             registry.is_ready = True
 
+        # Warm up YOLO models to eliminate cold-start latency on first user request
+        try:
+            dummy_img = Image.new("RGB", (64, 64), color=(128, 128, 128))
+            if registry.yolo_international_model:
+                registry.yolo_international_model.predict(source=dummy_img, conf=0.5, imgsz=64, verbose=False)
+            if registry.yolo_pakistani_model:
+                registry.yolo_pakistani_model.predict(source=dummy_img, conf=0.5, imgsz=64, verbose=False)
+            logger.info("YOLO models pre-warmed in memory.")
+        except Exception as e:
+            logger.debug(f"Warmup notice: {e}")
+
     except Exception as e:
         logger.warning(f"Could not load Ultralytics YOLO models ({e}).")
         registry.yolo_model = None
@@ -183,7 +194,7 @@ def run_detection_pipeline(
             from torchvision.transforms import functional as TF
 
             tensor_img = TF.to_tensor(img)
-            with torch.no_grad():
+            with torch.inference_mode():
                 preds = registry.faster_rcnn_model([tensor_img])[0]
 
             boxes = preds["boxes"]
@@ -221,18 +232,25 @@ def run_detection_pipeline(
     else:
         # Select active YOLO model
         active_yolo = None
-        if "PAKISTAN" in choice_upper and registry.yolo_pakistani_model is not None:
+        is_pakistani = "PAKISTAN" in choice_upper
+        if is_pakistani and registry.yolo_pakistani_model is not None:
             active_yolo = registry.yolo_pakistani_model
+            # For fine-tuned Pakistani model, align raw objectness score threshold with training distribution
+            eff_conf = min(confidence_threshold, 0.15) if confidence_threshold > 0.15 else confidence_threshold
         elif registry.yolo_international_model is not None:
             active_yolo = registry.yolo_international_model
+            eff_conf = confidence_threshold
         else:
             active_yolo = registry.yolo_model
+            eff_conf = confidence_threshold
 
         if active_yolo is not None:
             try:
                 results = active_yolo.predict(
                     source=img,
-                    conf=confidence_threshold,
+                    conf=eff_conf,
+                    iou=0.45,
+                    imgsz=640,
                     verbose=False,
                 )
                 for r in results:

@@ -66,6 +66,6 @@
             "test": 80
         }
     },
-    "pakistani_dataset_status": "ready",
-    "pakistani_images_found": 180
+    "pakistani_dataset_status": "awaiting_local_pakistani_dataset",
+    "pakistani_images_found": 0
 }

@@ -54,8 +54,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static file mount for detected/annotated outputs and experiment visualizations
+# Static file mount for detected/annotated outputs, artifacts, and experiment visualizations
 app.mount("/outputs", StaticFiles(directory=str(settings.outputs_path)), name="outputs")
+app.mount("/uploads", StaticFiles(directory=str(settings.outputs_path)), name="uploads")
+app.mount("/artifacts", StaticFiles(directory=str(settings.BASE_DIR / "artifacts")), name="artifacts")
 app.mount("/visualizations", StaticFiles(directory=str(settings.visualizations_path)), name="visualizations")
 
 # Include Versioned API Routes

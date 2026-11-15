@@ -43,6 +43,21 @@ export const fetchHistory = async (limit = 20, offset = 0) => {
   return res.data;
 };
 
+export const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+
+export const resolveImageUrl = (pathOrObj) => {
+  if (!pathOrObj) return '';
+  const raw = typeof pathOrObj === 'string'
+    ? pathOrObj
+    : (pathOrObj.output_image_url || pathOrObj.annotated_image_path || pathOrObj.image_url || pathOrObj.image_path || pathOrObj.filename || '');
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('blob:')) {
+    return raw;
+  }
+  const clean = raw.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `${API_BASE}/${clean}`;
+};
+
 export const fetchRunDetail = async (runId) => {
   const res = await api.get(`/history/${runId}`);
   return res.data;

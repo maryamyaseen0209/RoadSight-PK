@@ -11,7 +11,7 @@ import {
   Layers,
   Loader2,
 } from 'lucide-react';
-import { fetchRunDetail } from '../services/api';
+import { fetchRunDetail, resolveImageUrl } from '../services/api';
 
 const CLASS_BADGES = {
   0: { code: 'D00', name: 'Longitudinal Crack', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
@@ -178,7 +178,7 @@ export default function Results() {
           </span>
           <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
             <img
-              src={result.image_url}
+              src={resolveImageUrl(result.image_url)}
               alt="Original Road"
               className="max-h-96 w-auto object-contain"
             />
@@ -191,7 +191,7 @@ export default function Results() {
           </span>
           <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
             <img
-              src={result.output_image_url}
+              src={resolveImageUrl(result.output_image_url)}
               alt="Annotated Defects"
               className="max-h-96 w-auto object-contain"
             />

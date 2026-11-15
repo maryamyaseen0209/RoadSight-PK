@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Layers,
 } from 'lucide-react';
-import { runPrediction } from '../services/api';
+import { runPrediction, resolveImageUrl } from '../services/api';
 
 const CLASS_BADGES = {
   0: { name: 'Longitudinal Crack [D00]', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
@@ -85,7 +85,7 @@ export default function Analyze() {
   const handleDownload = () => {
     if (!result?.output_image_url) return;
     const link = document.createElement('a');
-    link.href = result.output_image_url;
+    link.href = resolveImageUrl(result.output_image_url);
     link.download = `annotated_${result.image_name || 'road'}.jpg`;
     document.body.appendChild(link);
     link.click();
@@ -275,7 +275,7 @@ export default function Analyze() {
               </span>
               <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
                 <img
-                  src={result.image_url}
+                  src={resolveImageUrl(result.image_url)}
                   alt="Original road"
                   className="max-h-80 w-auto object-contain"
                 />
@@ -287,7 +287,7 @@ export default function Analyze() {
               </span>
               <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px]">
                 <img
-                  src={result.output_image_url}
+                  src={resolveImageUrl(result.output_image_url)}
                   alt="Annotated defects"
                   className="max-h-80 w-auto object-contain"
                 />
