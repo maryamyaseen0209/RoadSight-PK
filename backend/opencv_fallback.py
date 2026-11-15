@@ -72,15 +72,21 @@ def supplement_missed_defects(
     hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
     _, s_chan, v_chan = cv2.split(hsv)
 
-    road_y_start = int(h * 0.18)
     road_mask = np.zeros((h, w), dtype=np.uint8)
-    road_mask[road_y_start:, :] = 255
+    # Trapezoid polygon covering only the actual drivable road lane (excludes buildings/sky/curbs)
+    road_poly = np.array([[
+        (int(w * 0.22), int(h * 0.42)),  # top-left of road lane
+        (int(w * 0.78), int(h * 0.42)),  # top-right of road lane
+        (int(w * 0.92), int(h * 0.94)),  # bottom-right (above watermark bar)
+        (int(w * 0.08), int(h * 0.94)),  # bottom-left (above watermark bar)
+    ]], dtype=np.int32)
+    cv2.fillPoly(road_mask, road_poly, 255)
 
-    road_l = l_chan[road_y_start:, :]
-    bright_thresh = max(float(np.percentile(road_l, 85)), 148.0)
+    road_l = l_chan[int(h * 0.42):int(h * 0.94), int(w * 0.12):int(w * 0.88)]
+    bright_thresh = max(float(np.percentile(road_l, 88)), 160.0)
 
     puddle_mask = np.where(
-        (l_chan >= bright_thresh) & (s_chan <= 65) & (v_chan >= 148) & (road_mask > 0),
+        (l_chan >= bright_thresh) & (s_chan <= 55) & (v_chan >= 160) & (road_mask > 0),
         255, 0
     ).astype(np.uint8)
 
@@ -94,7 +100,8 @@ def supplement_missed_defects(
     contours, _ = cv2.findContours(puddle_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if not (0.006 * img_area <= area <= 0.25 * img_area):
+        # Pothole puddles must be between 0.7% and 8% of frame (prevents whole-street boxes)
+        if not (0.007 * img_area <= area <= 0.08 * img_area):
             continue
         x, y, bw, bh = cv2.boundingRect(cnt)
         aspect = bw / float(max(bh, 1))
@@ -115,6 +122,7 @@ def supplement_missed_defects(
 
     # --- PART B: Fallback Structural Crack Detection (When Model Finds 0 Boxes on Close-Ups like 'images (1).jpg') ---
     if len(augmented) == 0:
+        road_y_start = int(h * 0.35)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # Black-hat morphology isolates dark cracks against lighter asphalt texture
         bh_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
