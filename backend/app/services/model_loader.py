@@ -244,6 +244,7 @@ def run_detection_pipeline(
 
         if active_yolo is not None:
             try:
+                # 1. Standard 640 pass
                 results = active_yolo.predict(
                     source=img,
                     conf=effective_conf,
@@ -252,6 +253,22 @@ def run_detection_pipeline(
                     agnostic_nms=True,
                     verbose=False,
                 )
+
+                # Fallback for close-up cracks or low-res web thumbnails (like 'images (1).jpg', 'images (2).jpg'):
+                # Run a second pass with augment=True (multi-scale TTA) and a relaxed confidence floor (0.10)
+                has_boxes = any(len(r.boxes) > 0 for r in results if r.boxes is not None)
+                if not has_boxes:
+                    fallback_conf = min(float(confidence_threshold), 0.10)
+                    results = active_yolo.predict(
+                        source=img,
+                        conf=fallback_conf,
+                        iou=0.45,
+                        imgsz=640,
+                        augment=True,  # Enables Test-Time Augmentation across scales/flips
+                        agnostic_nms=True,
+                        verbose=False,
+                    )
+
                 for r in results:
                     boxes = r.boxes
                     for i in range(len(boxes)):

@@ -64,6 +64,19 @@ class YOLODetectorWrapper:
             verbose=False,
         )
 
+        has_boxes = any(len(r.boxes) > 0 for r in results if r.boxes is not None)
+        if not has_boxes:
+            fallback_conf = min(float(conf), 0.10)
+            results = self.model.predict(
+                source=source,
+                conf=fallback_conf,
+                iou=iou,
+                imgsz=imgsz,
+                augment=True,
+                agnostic_nms=agnostic_nms,
+                verbose=False,
+            )
+
         detections = []
         for r in results:
             boxes = r.boxes
