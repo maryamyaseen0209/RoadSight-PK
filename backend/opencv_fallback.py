@@ -40,7 +40,7 @@ def supplement_missed_defects(
                     d.get("bbox_ymax", 0),
                 ]
             )
-            if _iou(cand, existing_box) > 0.30:
+            if _iou(cand, existing_box) > 0.25:
                 return
         # Provide all common schema keys so both backend & frontend render seamlessly
         area_ratio = round(((x2 - x1) * (y2 - y1)) / img_area, 4)

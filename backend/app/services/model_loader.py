@@ -127,7 +127,7 @@ def load_models_on_startup():
 
 def merge_adjacent_defect_boxes(
     detections: List[Dict[str, Any]],
-    iou_thresh: float = 0.30,
+    iou_thresh: float = 0.25,
 ) -> List[Dict[str, Any]]:
     """
     Class-Agnostic / Same Priority Tier NMS Merge:
@@ -314,11 +314,11 @@ def run_detection_pipeline(
 
         if active_yolo is not None:
             try:
-                # 1. Standard 640 pass with Class-Agnostic NMS (IoU 0.30)
+                # 1. Standard 640 pass with Class-Agnostic NMS (IoU 0.25)
                 results = active_yolo.predict(
                     source=img,
                     conf=effective_conf,
-                    iou=0.30,  # Lower IOU threshold merges overlapping adjacent boxes
+                    iou=0.25,  # Stricter overlap suppression merges fractured bounding boxes
                     imgsz=640,
                     agnostic_nms=True,  # Merges disparate class boxes into a unified damage region
                     verbose=False,
@@ -332,7 +332,7 @@ def run_detection_pipeline(
                     results = active_yolo.predict(
                         source=img,
                         conf=fallback_conf,
-                        iou=0.30,  # Lower IOU threshold merges overlapping adjacent boxes
+                        iou=0.25,  # Stricter overlap suppression merges fractured bounding boxes
                         imgsz=640,
                         augment=True,  # Enables Test-Time Augmentation across scales/flips
                         agnostic_nms=True,  # Merges disparate class boxes into a unified damage region
@@ -384,8 +384,8 @@ def run_detection_pipeline(
     except Exception as e:
         logger.warning(f"OpenCV fallback processing notice: {e}")
 
-    # 4. Post-Processing NMS Merge: Merge adjacent / overlapping defect boxes (IoU >= 0.30)
-    detections = merge_adjacent_defect_boxes(detections, iou_thresh=0.30)
+    # 4. Post-Processing NMS Merge: Merge adjacent / overlapping defect boxes (IoU >= 0.25)
+    detections = merge_adjacent_defect_boxes(detections, iou_thresh=0.25)
 
     # Draw color-coded overlay
     annotated_img = draw_detection_overlay(img, detections)
