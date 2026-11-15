@@ -83,10 +83,10 @@ def supplement_missed_defects(
     cv2.fillPoly(road_mask, road_poly, 255)
 
     road_l = l_chan[int(h * 0.42):int(h * 0.94), int(w * 0.12):int(w * 0.88)]
-    bright_thresh = max(float(np.percentile(road_l, 88)), 160.0)
+    bright_thresh = max(float(np.percentile(road_l, 84)), 152.0)
 
     puddle_mask = np.where(
-        (l_chan >= bright_thresh) & (s_chan <= 55) & (v_chan >= 160) & (road_mask > 0),
+        (l_chan >= bright_thresh) & (s_chan <= 55) & (v_chan >= 152) & (road_mask > 0),
         255, 0
     ).astype(np.uint8)
 
@@ -100,8 +100,8 @@ def supplement_missed_defects(
     contours, _ = cv2.findContours(puddle_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        # Pothole puddles must be between 0.7% and 8% of frame (prevents whole-street boxes)
-        if not (0.007 * img_area <= area <= 0.08 * img_area):
+        # Pothole puddles must be between 0.35% and 8% of frame
+        if not (0.0035 * img_area <= area <= 0.08 * img_area):
             continue
         x, y, bw, bh = cv2.boundingRect(cnt)
         aspect = bw / float(max(bh, 1))
