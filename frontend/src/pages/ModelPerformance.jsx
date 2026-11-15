@@ -27,9 +27,24 @@ import {
 } from 'lucide-react';
 import { fetchMetrics } from '../services/api';
 
+const VISUALIZATIONS = [
+  { title: 'Confusion Matrix', file: 'confusion_matrix.png', desc: 'Classification accuracy across D00, D10, D20, and D40 classes.' },
+  { title: 'Precision-Recall Curve', file: 'precision_recall_curve.png', desc: 'Precision-Recall trade-off across detection confidence thresholds.' },
+  { title: 'Per-Class F1 Scores', file: 'per_class_f1_scores.png', desc: 'Harmonic mean of precision and recall for individual defect classes.' },
+  { title: 'Domain Gap Analysis', file: 'domain_gap_analysis.png', desc: 'Performance divergence between international baseline and Pakistani road domain.' },
+  { title: 'Transfer Learning Recovery Curve', file: 'transfer_learning_curve.png', desc: 'Recovery of mAP50 as Pakistani training dataset fractions increase.' },
+  { title: 'Latency vs. Precision Trade-off', file: 'latency_vs_precision.png', desc: 'Inference runtime latency (ms) vs. mAP50 accuracy comparison across models.' },
+  { title: 'Loss Convergence Curves', file: 'loss_convergence.png', desc: 'Bounding box regression, classification, and DFL loss convergence over epochs.' },
+  { title: 'Training & Validation Loss', file: 'training_validation_loss.png', desc: 'Train vs. validation loss dynamics throughout fine-tuning.' },
+  { title: 'Class Distribution', file: 'class_distribution.png', desc: 'Instance distribution across Pakistani road damage categories.' },
+  { title: 'LOCO Generalization Benchmark', file: 'loco_generalization.png', desc: 'Leave-One-Country-Out cross-geography generalization evaluation.' },
+  { title: 'Error Analysis Diagnostic Grid', file: 'error_analysis_grid.png', desc: 'Spatial diagnostics of true positives, false positives, and missed road defects.' },
+];
+
 export default function ModelPerformance() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [modalImage, setModalImage] = useState(null);
 
   const loadMetricsData = async () => {
     setLoading(true);
@@ -248,56 +263,77 @@ export default function ModelPerformance() {
       {/* Visualizations Grid from /visualizations */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
         <div>
-          <h2 className="text-base font-bold text-white">Generated Experimental Visualizations</h2>
-          <p className="text-xs text-slate-400">
-            Rendered research artifacts and diagnostic grids directly from <code className="text-slate-300">/visualizations/</code>
+          <h2 className="text-base font-bold text-white flex items-center justify-between">
+            <span>Generated Experimental Visualizations ({VISUALIZATIONS.length})</span>
+            <span className="text-xs text-slate-400 font-normal">Colab Research Diagnostic Artifacts</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Rendered research artifacts and diagnostic grids directly served from <code className="text-emerald-400">/visualizations/</code>
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-xs font-semibold text-slate-300 block">Confusion Matrix</span>
-            <div className="rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center min-h-[200px]">
-              <img
-                src="/visualizations/confusion_matrix.png"
-                alt="Confusion Matrix"
-                className="w-full h-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
+          {VISUALIZATIONS.map((vis) => (
+            <div
+              key={vis.file}
+              onClick={() => setModalImage(vis)}
+              className="p-3 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl space-y-2 transition-all cursor-pointer group shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-200 group-hover:text-emerald-400 transition-colors">
+                  {vis.title}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">Zoom</span>
+              </div>
+              <div className="rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center min-h-[200px] border border-slate-900">
+                <img
+                  src={`/visualizations/${vis.file}`}
+                  alt={vis.title}
+                  className="w-full h-auto object-contain transition-transform group-hover:scale-105 duration-200"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">{vis.desc}</p>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-xs font-semibold text-slate-300 block">Transfer Learning Recovery</span>
-            <div className="rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center min-h-[200px]">
-              <img
-                src="/visualizations/transfer_learning_curve.png"
-                alt="Transfer Learning Curve"
-                className="w-full h-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
+      {/* Fullscreen Preview Modal */}
+      {modalImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setModalImage(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">{modalImage.title}</h3>
+                <p className="text-xs text-slate-400">{modalImage.desc}</p>
+              </div>
+              <button
+                onClick={() => setModalImage(null)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Close (ESC)
+              </button>
             </div>
-          </div>
-
-          <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-xs font-semibold text-slate-300 block">Error Analysis Diagnostic Grid</span>
-            <div className="rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center min-h-[200px]">
+            <div className="flex items-center justify-center bg-slate-950 rounded-xl p-2 max-h-[75vh] overflow-auto">
               <img
-                src="/visualizations/error_analysis_grid.png"
-                alt="Error Analysis"
-                className="w-full h-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
+                src={`/visualizations/${modalImage.file}`}
+                alt={modalImage.title}
+                className="max-h-[70vh] w-auto object-contain rounded-lg"
               />
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
