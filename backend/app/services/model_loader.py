@@ -232,25 +232,24 @@ def run_detection_pipeline(
     else:
         # Select active YOLO model
         active_yolo = None
-        is_pakistani = "PAKISTAN" in choice_upper
-        if is_pakistani and registry.yolo_pakistani_model is not None:
+        if "PAKISTAN" in choice_upper and registry.yolo_pakistani_model is not None:
             active_yolo = registry.yolo_pakistani_model
-            # For fine-tuned Pakistani model, align raw objectness score threshold with training distribution
-            eff_conf = min(confidence_threshold, 0.15) if confidence_threshold > 0.15 else confidence_threshold
         elif registry.yolo_international_model is not None:
             active_yolo = registry.yolo_international_model
-            eff_conf = confidence_threshold
         else:
             active_yolo = registry.yolo_model
-            eff_conf = confidence_threshold
+
+        # Ensure thin road cracks (0.15-0.24) are not dropped when user slider is at 0.25
+        effective_conf = min(float(confidence_threshold), 0.15)
 
         if active_yolo is not None:
             try:
                 results = active_yolo.predict(
                     source=img,
-                    conf=eff_conf,
+                    conf=effective_conf,
                     iou=0.45,
                     imgsz=640,
+                    agnostic_nms=True,
                     verbose=False,
                 )
                 for r in results:

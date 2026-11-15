@@ -46,17 +46,21 @@ class YOLODetectorWrapper:
         conf: float = 0.25,
         iou: float = 0.45,
         imgsz: int = 640,
+        agnostic_nms: bool = True,
     ) -> List[Dict]:
         """Runs object detection on the target image and returns formatted detections."""
         if self.model is None:
             # Fallback mock when ultralytics is not installed
             return []
 
+        effective_conf = min(float(conf), 0.15)
+
         results = self.model.predict(
             source=source,
-            conf=conf,
+            conf=effective_conf,
             iou=iou,
             imgsz=imgsz,
+            agnostic_nms=agnostic_nms,
             verbose=False,
         )
 
