@@ -203,6 +203,12 @@ def draw_detection_overlay(
     """Draws clear color-coded bounding boxes and confidence labels on image."""
     annotated = image.copy().convert("RGB")
     draw = ImageDraw.Draw(annotated)
+    w, h = annotated.size
+
+    try:
+        font = ImageFont.truetype("arial.ttf", 13)
+    except Exception:
+        font = ImageFont.load_default()
 
     for det in detections:
         cid = det["class_id"]
@@ -218,12 +224,29 @@ def draw_detection_overlay(
         # Bounding box
         draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
 
-        # Label tag
+        # Label tag with accurate text measurement and clipping protection
         label_text = f"{cname} {conf:.2f}"
-        tag_w = len(label_text) * 7 + 10
-        tag_h = 18
-        draw.rectangle([x1, max(0, y1 - tag_h), x1 + tag_w, y1], fill=color)
-        draw.text((x1 + 4, max(0, y1 - tag_h + 2)), label_text, fill=(255, 255, 255))
+        try:
+            bbox = draw.textbbox((0, 0), label_text, font=font)
+            tag_w = (bbox[2] - bbox[0]) + 10
+            tag_h = (bbox[3] - bbox[1]) + 6
+        except Exception:
+            tag_w = len(label_text) * 7 + 10
+            tag_h = 18
+
+        # Position above box if space permits, otherwise place inside top border
+        if y1 >= tag_h + 2:
+            tag_y1 = y1 - tag_h
+            tag_y2 = y1
+        else:
+            tag_y1 = y1
+            tag_y2 = y1 + tag_h
+
+        tag_x1 = max(0.0, min(float(x1), float(w - tag_w)))
+        tag_x2 = tag_x1 + tag_w
+
+        draw.rectangle([tag_x1, tag_y1, tag_x2, tag_y2], fill=color)
+        draw.text((tag_x1 + 5, tag_y1 + 2), label_text, font=font, fill=(255, 255, 255))
 
     return annotated
 
@@ -282,6 +305,15 @@ def run_detection_pipeline(
                     ymin = max(0.0, min(float(h), coords[1]))
                     xmax = max(0.0, min(float(w), coords[2]))
                     ymax = max(0.0, min(float(h), coords[3]))
+
+                    # Discard degenerate / whole-frame false-positive bounding boxes (e.g. spanning > 82% width or > 40% total area)
+                    bw = xmax - xmin
+                    bh = ymax - ymin
+                    if bw > 0.82 * float(w) and bh > 0.50 * float(h):
+                        continue
+                    if (bw * bh) > 0.40 * float(w * h):
+                        continue
+
                     detections.append({
                         "class_id": mapped_cid,
                         "class_name": OFFICIAL_CLASS_MAPPING[mapped_cid],
@@ -352,6 +384,14 @@ def run_detection_pipeline(
                             ymin = max(0.0, min(float(h), coords[1]))
                             xmax = max(0.0, min(float(w), coords[2]))
                             ymax = max(0.0, min(float(h), coords[3]))
+
+                            # Discard degenerate / whole-frame false-positive bounding boxes
+                            bw = xmax - xmin
+                            bh = ymax - ymin
+                            if bw > 0.82 * float(w) and bh > 0.50 * float(h):
+                                continue
+                            if (bw * bh) > 0.40 * float(w * h):
+                                continue
 
                             detections.append({
                                 "class_id": cid,
