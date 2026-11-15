@@ -1,18 +1,28 @@
 {
-    "YOLO": {
-        "parameters": 2390464,
-        "size_mb": 5.196904182434082,
-        "gpu_latency_ms": 8.5,
-        "gpu_fps": 117.6,
-        "cpu_latency_ms": 45.0,
-        "cpu_fps": 22.2
-    },
-    "Faster_RCNN": {
-        "parameters": 43271528,
-        "size_mb": 165.43876361846924,
-        "gpu_latency_ms": 42.0,
-        "gpu_fps": 23.8,
-        "cpu_latency_ms": 280.0,
-        "cpu_fps": 3.5
+    "experiment_id": "exp5_efficiency_comparison",
+    "hardware_gpu": "Tesla T4",
+    "input_resolution": "640x640",
+    "batch_size": 1,
+    "models": {
+        "YOLO26n": {
+            "parameters": 2535344,
+            "checkpoint_size_mb": 5.2,
+            "gpu_latency_ms": 18.07,
+            "gpu_fps": 55.34,
+            "cpu_latency_ms": 146.23,
+            "cpu_fps": 6.84,
+            "mAP50": 0.5302,
+            "mAP50_95": 0.2709
+        },
+        "Faster_RCNN_ResNet50_FPN_v2": {
+            "parameters": 43271528,
+            "checkpoint_size_mb": 165.44,
+            "gpu_latency_ms": 128.01,
+            "gpu_fps": 7.81,
+            "cpu_latency_ms": 6770.8,
+            "cpu_fps": 0.15,
+            "mAP50": 0.2352,
+            "mAP50_95": 0.1113
+        }
     }
 }

@@ -1,4 +1,12 @@
+import os
 from pathlib import Path
+
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+os.environ["YOLO_CONFIG_DIR"] = str(_BASE_DIR / "artifacts")
+os.environ["YOLO_OFFLINE"] = "True"
+os.environ["YOLO_VERBOSE"] = "False"
+os.environ["ULTRALYTICS_AUTOINSTALL"] = "0"
+os.environ["SETTINGS_CHECK"] = "0"
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 from PIL import Image, ImageDraw, ImageFont

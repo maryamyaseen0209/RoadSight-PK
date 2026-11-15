@@ -34,14 +34,15 @@ build/
 # RoadSight-PK Data & Artifacts (Large Files)
 data/external/
 data/local/raw/
-artifacts/checkpoints/*.pt
-artifacts/checkpoints/*.pth
-artifacts/checkpoints/*.onnx
+*.pt
+*.pth
+*.onnx
 artifacts/outputs/*
 !artifacts/outputs/.gitkeep
 !artifacts/checkpoints/.gitkeep
 *.zip
 roadsight_colab_artifacts/
+artifacts/Ultralytics/
 
 # IDEs & System files
 .vscode/

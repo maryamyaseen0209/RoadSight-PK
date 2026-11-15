@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,9 +11,6 @@ from backend.app.db.session import init_db, SessionLocal
 from backend.app.services.model_loader import load_models_on_startup
 from backend.app.services.experiment_sync import sync_experiments_to_database
 
-# Ensure DB tables are created upon import
-init_db()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,7 +22,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Artifacts output directory mounted at: {settings.outputs_path}")
     logger.info(f"Visualizations directory mounted at: {settings.visualizations_path}")
 
-    # Load defect detection models once on startup
+    # Load defect detection models
     load_models_on_startup()
 
     # Automatically sync experiment metrics from CSV/JSON into SQLite

@@ -1,3 +1,12 @@
+import os
+from pathlib import Path
+_WORKSPACE_DIR = Path(__file__).resolve().parent.parent
+os.environ["YOLO_CONFIG_DIR"] = str(_WORKSPACE_DIR / "artifacts")
+os.environ["YOLO_OFFLINE"] = "True"
+os.environ["YOLO_VERBOSE"] = "False"
+os.environ["ULTRALYTICS_AUTOINSTALL"] = "0"
+os.environ["SETTINGS_CHECK"] = "0"
+
 import io
 from pathlib import Path
 import pytest

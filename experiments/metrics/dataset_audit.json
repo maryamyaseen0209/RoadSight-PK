@@ -1,15 +1,71 @@
 {
-    "rdd2022_distribution": {
-        "D00": 1500,
-        "D10": 1200,
-        "D20": 950,
-        "D40": 600
+    "total_annotated_images": 3600,
+    "splits": {
+        "train": 2520,
+        "val": 600,
+        "test": 480
     },
-    "pakistani_distribution": {
-        "status": "awaiting_local_pakistani_dataset",
-        "D00": 0,
-        "D10": 0,
-        "D20": 0,
-        "D40": 0
-    }
+    "corrupt_images_skipped": 0,
+    "negative_images_preserved": 1242,
+    "invalid_boxes_filtered": 0,
+    "rdd2022_distribution": {
+        "D00": 2904,
+        "D10": 1139,
+        "D20": 865,
+        "D40": 662
+    },
+    "split_wise_class_distribution": {
+        "train": {
+            "D00": 2053,
+            "D10": 788,
+            "D20": 606,
+            "D40": 457
+        },
+        "val": {
+            "D00": 479,
+            "D10": 179,
+            "D20": 138,
+            "D40": 119
+        },
+        "test": {
+            "D00": 372,
+            "D10": 172,
+            "D20": 121,
+            "D40": 86
+        }
+    },
+    "countries_represented": {
+        "China_MotorBike": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        },
+        "Czech_Republic": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        },
+        "India": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        },
+        "Japan": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        },
+        "Norway": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        },
+        "United_States": {
+            "train": 420,
+            "val": 100,
+            "test": 80
+        }
+    },
+    "pakistani_dataset_status": "ready",
+    "pakistani_images_found": 180
 }

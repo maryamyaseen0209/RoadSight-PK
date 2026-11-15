@@ -1,7 +1,17 @@
+import os
 from pathlib import Path
 from typing import Any, List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Ensure Ultralytics config stays inside workspace
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+os.environ["YOLO_CONFIG_DIR"] = str(_BASE_DIR / "artifacts")
+os.environ["YOLO_OFFLINE"] = "True"
+os.environ["YOLO_VERBOSE"] = "False"
+os.environ["SETTINGS_CHECK"] = "0"
+os.environ["ULTRALYTICS_AUTOINSTALL"] = "0"
+
 
 
 class Settings(BaseSettings):
